@@ -1,4 +1,25 @@
-# Assumed ASKO family (untested); labels copied from 015-dishwasher-60.2
+# ASKO family; reported on an ATAG dishwasher. Labels copied from
+# 015-dishwasher-60.2 and not verified on this feature code.
+#
+# The inherited start button (Actions: 2 alone) has no effect while the machine
+# is in standby: there is no armed program for the action to act on. The app
+# sends the program selection together with the action, which the appliance
+# accepts as a complete "start this program" command, so start does the same
+# here. Delay start is fixed to 0 (start now); auto door open follows whatever
+# the appliance currently has selected.
+buttons:
+  - key: start
+    write:
+      Actions: 2
+      Selected_program_id:
+        from: Selected_program_id_status
+      Program_mode:
+        from: Selected_program_mode
+        adjust: 1
+      Auto_door_open_function:
+        from: Selected_program_auto_door_open_function
+        adjust: 1
+      Delay_start_status: 0
 properties:
   - property: Selected_program_id_status
     select:

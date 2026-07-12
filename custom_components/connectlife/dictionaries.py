@@ -29,6 +29,7 @@ from .const import (
 
 ADJUST = "adjust"
 AVAILABLE_WHEN = "available_when"
+FROM = "from"
 BUTTONS = "buttons"
 COMMAND = "command"
 DEVICE = "device"
@@ -391,6 +392,18 @@ class Property:
             self.sensor = Sensor(self.name, {})
 
 
+@dataclass
+class WriteFromStatus:
+    """A button write value taken from the current value of a status property.
+
+    ``adjust`` is subtracted from the status value to get the value to send,
+    matching the semantics of a select ``command``.
+    """
+
+    status: str
+    adjust: int = 0
+
+
 class Button:
     """A button entity declared at the top level of a data dictionary.
 
@@ -402,7 +415,7 @@ class Button:
     key: str
     icon: str | None
     available_when: dict[str, int]
-    write: dict[str, int]
+    write: dict[str, int | WriteFromStatus]
 
     def __init__(self, entry: dict):
         self.key = entry[KEY]
@@ -413,7 +426,12 @@ class Button:
             _LOGGER.warning("Button %s has no write map", self.key)
             self.write = {}
         else:
-            self.write = write
+            self.write = {
+                name: WriteFromStatus(value[FROM], _val(value, ADJUST, 0))
+                if isinstance(value, dict)
+                else value
+                for name, value in write.items()
+            }
 
 
 def _merge_buttons(base: list[dict], override: list[dict]) -> list[dict]:

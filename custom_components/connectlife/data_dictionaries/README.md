@@ -495,12 +495,39 @@ becomes one HA button entity. A press sends the `write` map to the device in a s
 | `key`            | string                          | Unique key for this button within the device. Used as the translation key, as part of the entity unique id, and as the merge identity when a feature override changes an inherited button.                                                  |
 | `icon`           | `mdi:play`, etc.                | Icon for the button.                                                                                                                                                                                                                         |
 | `available_when` | dictionary of string to integer | Optional. Map of property name to required value. The button is only available when every listed property currently has the listed value. Use to gate buttons behind a remote-control-allowed status property.                              |
-| `write`          | dictionary of string to integer | Required for non-disabled buttons. Map of property name to value to send when pressed. Multiple entries are sent in a single request — useful for combos like "set delay + start".                                                          |
+| `write`          | dictionary of string to [write value](#button-write-values) | Required for non-disabled buttons. Map of property name to value to send when pressed. Multiple entries are sent in a single request — useful for combos like "set delay + start".                                    |
 | `disable`        | `true`, `false`                 | If `true`, suppress this button. Use in a feature override to remove a button inherited from the base when a device variant doesn't support that action code. Defaults to `false`.                                                          |
 
 Feature overrides merge with the base by `key`: matching entries shallow-merge field by field
 (`available_when` and `write` replace as a whole), and entries with a new `key` are appended.
 A feature override carrying only the differences keeps the override file small.
+
+### Button write values
+
+A `write` value is either a fixed integer, or a value read from the current status of another
+property when the button is pressed:
+
+| Item     | Type    | Description                                                                                                                    |
+|----------|---------|--------------------------------------------------------------------------------------------------------------------------------|
+| `from`   | string  | Name of the status property to read. If the appliance does not report it, that entry is left out of the command.               |
+| `adjust` | integer | Optional. Subtracted from the status value to get the value to send, as for a select [`command`](#command). Defaults to `0`.   |
+
+Use this when a device only accepts an action together with the settings it applies to. Some
+dishwashers, for example, ignore a bare `Actions: 2` (start) while in standby: they have no armed
+program to start. The official app instead sends the current program selection along with the
+action, which the appliance accepts as a complete "start this program" command:
+
+```yaml
+buttons:
+  - key: start
+    write:
+      Actions: 2
+      Selected_program_id:
+        from: Selected_program_id_status
+      Program_mode:
+        from: Selected_program_mode
+        adjust: 1
+```
 
 Remember to add [translation strings](#translation-strings) for button names under `entity.button.<key>.name`.
 

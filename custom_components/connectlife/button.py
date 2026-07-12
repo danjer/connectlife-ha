@@ -1,5 +1,7 @@
 """Provides a button for ConnectLife write-only actions."""
 
+import logging
+
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -10,8 +12,10 @@ from connectlife.appliance import ConnectLifeAppliance
 
 from .const import DOMAIN
 from .coordinator import ConnectLifeCoordinator
-from .dictionaries import Button, Dictionaries
+from .dictionaries import Button, Dictionaries, WriteFromStatus
 from .entity import ConnectLifeEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -67,8 +71,25 @@ class ConnectLifeButton(ConnectLifeEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Send the button's write map to the device."""
         status_list = self.coordinator.data[self.device_id].status_list
+        command: dict[str, int] = {}
+        for name, value in self.button.write.items():
+            if not isinstance(value, WriteFromStatus):
+                command[name] = value
+                continue
+            current = status_list.get(value.status)
+            if not isinstance(current, int):
+                # The device does not report the property (or reports it as a
+                # string): send the rest of the command rather than nothing.
+                _LOGGER.warning(
+                    "Cannot set %s from %s for %s: no value reported",
+                    name,
+                    value.status,
+                    self.nickname,
+                )
+                continue
+            command[name] = current - value.adjust
         # Only reflect read-back properties optimistically; write-only keys
         # like Actions never appear in status_list and would linger as
         # phantom values until the next poll.
-        properties = {k: v for k, v in self.button.write.items() if k in status_list}
-        await self.async_update_device(dict(self.button.write), properties)
+        properties = {k: v for k, v in command.items() if k in status_list}
+        await self.async_update_device(command, properties)

@@ -183,9 +183,9 @@
         "write": {
           "type": ["object", "null"],
           "additionalProperties": {
-            "type": "integer"
+            "$ref": "#/$defs/ButtonWriteValue"
           },
-          "description": "Map of property name to value to send when the button is pressed. Multiple entries are sent in a single request. Required for non-disabled buttons; replaces the inherited value as a whole."
+          "description": "Map of property name to value to send when the button is pressed. The value is either a fixed integer or a value read from the current status of another property. Multiple entries are sent in a single request. Required for non-disabled buttons; replaces the inherited value as a whole."
         },
         "disable": {
           "type": "boolean",
@@ -195,6 +195,33 @@
       },
       "required": ["key"],
       "title": "Button"
+    },
+    "ButtonWriteValue": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "description": "Fixed value to send."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Name of the status property to read the value from when the button is pressed. If the appliance does not report the property, the entry is left out of the command.",
+              "examples": ["Selected_program_id_status"]
+            },
+            "adjust": {
+              "type": "integer",
+              "description": "Value subtracted from the status value to get the value to send, as for a select command.",
+              "default": 0
+            }
+          },
+          "required": ["from"],
+          "description": "Value read from the current status of another property."
+        }
+      ],
+      "title": "ButtonWriteValue"
     },
     "BinarySensor": {
       "type": ["object", "null"],
